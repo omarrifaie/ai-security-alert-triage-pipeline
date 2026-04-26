@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Finding {{ finding.id }} | AI Security Alert Triage{% endblock %}
+{% block content %}
+  <p><a href="/">&larr; Back to findings</a></p>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">{{ finding.rule_name }}</h2>
+    <p class="muted">
+      <code>{{ finding.rule_id }}</code> &middot;
+      <span class="badge sev-{{ finding.severity_hint.value }}">{{ finding.severity_hint.value }}</span>
+      &middot; repository <strong>{{ finding.scan.repository }}</strong>
+      {% if finding.scan.commit_sha %}&middot; commit <code>{{ finding.scan.commit_sha[:8] }}</code>{% endif %}
+    </p>
+
+    <p>{{ finding.message }}</p>
+
+    {% if finding.file_path %}
+      <p>
+        Location:
+        <code>{{ finding.file_path }}{% if finding.start_line %}:{{ finding.start_line }}{% if finding.end_line and finding.end_line != finding.start_line %}-{{ finding.end_line }}{% endif %}{% endif %}</code>
+      </p>
+    {% endif %}
+
+    {% if finding.snippet %}
+      <h3>Snippet</h3>
+      <pre>{{ finding.snippet }}</pre>
+    {% endif %}
+
+    {% if finding.tags %}
+      <p class="muted">Tags: {{ finding.tags|join(", ") }}</p>
+    {% endif %}
+
+    {% if finding.help_uri %}
+      <p>Reference: <a href="{{ finding.help_uri }}" target="_blank" rel="noopener">{{ finding.help_uri }}</a></p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Triage</h2>
+    {% if finding.triage %}
+      <p>
+        Severity:
+        <span class="badge sev-{{ finding.triage.severity.value }}">{{ finding.triage.severity.value }}</span>
+        &middot; false positive likelihood: <strong>{{ "%.2f"|format(finding.triage.false_positive_likelihood) }}</strong>
+        &middot; model: <code>{{ finding.triage.model }}</code>
+      </p>
+      <h3>Justification</h3>
+      <p>{{ finding.triage.justification }}</p>
+      {% if finding.triage.suggested_action %}
+        <h3>Suggested action</h3>
+        <p>{{ finding.triage.suggested_action }}</p>
+      {% endif %}
+    {% else %}
+      <p class="muted">No triage decision yet. Run <code>ai-triage triage</code> to populate this section.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Remediation</h2>
+    <form class="form-card" method="post" action="/findings/{{ finding.id }}/remediation">
+      <label>
+        Status
+        <select name="status">
+          {% for option in status_options %}
+            <option value="{{ option }}" {% if finding.remediation and finding.remediation.status.value == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Assignee
+        <input type="text" name="assignee" value="{{ finding.remediation.assignee if finding.remediation and finding.remediation.assignee else '' }}" />
+      </label>
+      <label>
+        Pull request URL
+        <input type="text" name="pr_url" value="{{ finding.remediation.pull_request_url if finding.remediation and finding.remediation.pull_request_url else '' }}" />
+      </label>
+      <label>
+        Notes
+        <textarea name="notes">{{ finding.remediation.notes if finding.remediation and finding.remediation.notes else '' }}</textarea>
+      </label>
+      <button class="primary" type="submit">Save</button>
+    </form>
+  </section>
+{% endblock %}

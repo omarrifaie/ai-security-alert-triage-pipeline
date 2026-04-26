@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Findings | AI Security Alert Triage{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2 style="margin-top: 0;">Severity breakdown</h2>
+    <div class="grid">
+      {% for sev, count in severity_counts.items() %}
+        <div class="stat">
+          <div class="label">{{ sev }}</div>
+          <div class="value">{{ count }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Remediation status</h2>
+    <div class="grid">
+      {% for status, count in remediation_counts.items() %}
+        <div class="stat">
+          <div class="label">{{ status }}</div>
+          <div class="value">{{ count }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Filters</h2>
+    <form method="get" action="/" class="filters">
+      <label>
+        Repository
+        <input type="text" name="repository" value="{{ filters.repository }}" placeholder="owner/name" />
+      </label>
+      <label>
+        Severity
+        <select name="severity">
+          <option value="">any</option>
+          {% for option in severity_options %}
+            <option value="{{ option }}" {% if filters.severity == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Status
+        <select name="status">
+          <option value="">any</option>
+          {% for option in status_options %}
+            <option value="{{ option }}" {% if filters.status == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Rule
+        <input type="text" name="rule" value="{{ filters.rule }}" placeholder="js/sql-injection" />
+      </label>
+      <label>
+        Limit
+        <input type="number" name="limit" value="{{ filters.limit }}" min="1" max="500" />
+      </label>
+      <button type="submit">Apply</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Findings ({{ findings|length }})</h2>
+    {% if findings %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Repository</th>
+            <th>Rule</th>
+            <th>Severity</th>
+            <th>Triage</th>
+            <th>FP score</th>
+            <th>Status</th>
+            <th>Location</th>
+            <th>Detected</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for finding in findings %}
+            <tr>
+              <td><a href="/findings/{{ finding.id }}">{{ finding.id }}</a></td>
+              <td>{{ finding.scan.repository }}</td>
+              <td><code>{{ finding.rule_id }}</code></td>
+              <td><span class="badge sev-{{ finding.severity_hint.value }}">{{ finding.severity_hint.value }}</span></td>
+              <td>
+                {% if finding.triage %}
+                  <span class="badge sev-{{ finding.triage.severity.value }}">{{ finding.triage.severity.value }}</span>
+                {% else %}
+                  <span class="muted">pending</span>
+                {% endif %}
+              </td>
+              <td>{% if finding.triage %}{{ "%.2f"|format(finding.triage.false_positive_likelihood) }}{% else %}<span class="muted">n/a</span>{% endif %}</td>
+              <td>
+                {% if finding.remediation %}
+                  {{ finding.remediation.status.value }}
+                {% else %}
+                  open
+                {% endif %}
+              </td>
+              <td>
+                {% if finding.file_path %}
+                  <code>{{ finding.file_path }}{% if finding.start_line %}:{{ finding.start_line }}{% endif %}</code>
+                {% else %}
+                  <span class="muted">n/a</span>
+                {% endif %}
+              </td>
+              <td>{{ finding.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No findings match the current filters.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top: 0;">Recent scans</h2>
+    {% if recent_scans %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Repository</th>
+            <th>Branch</th>
+            <th>Tool</th>
+            <th>Findings</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for scan in recent_scans %}
+            <tr>
+              <td>{{ scan.id }}</td>
+              <td>{{ scan.repository }}</td>
+              <td>{{ scan.branch or "-" }}</td>
+              <td>{{ scan.tool_name }} {{ scan.tool_version or "" }}</td>
+              <td>{{ scan.findings|length }}</td>
+              <td>{{ scan.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No scans recorded yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

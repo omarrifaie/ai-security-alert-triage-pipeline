@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_triage_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: triage
+      POSTGRES_DB: triage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage -d triage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_triage_dashboard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://triage:triage@postgres:5432/triage
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-replace-me}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      DASHBOARD_HOST: 0.0.0.0
+      DASHBOARD_PORT: "8000"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "ai_triage.dashboard.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  postgres_data:
+    driver: local

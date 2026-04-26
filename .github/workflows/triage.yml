@@ -1,0 +1,105 @@
+name: AI Triage
+
+on:
+  workflow_run:
+    workflows: ["CodeQL Analysis"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      sarif_artifact:
+        description: "Name of the SARIF artifact to download."
+        required: false
+        default: "codeql-sarif-python"
+
+permissions:
+  actions: read
+  contents: read
+  security-events: read
+
+jobs:
+  triage:
+    name: Run AI triage agent
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: triage
+          POSTGRES_PASSWORD: triage
+          POSTGRES_DB: triage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U triage"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://triage:triage@localhost:5432/triage
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+      DEFAULT_REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Apply database migrations
+        run: alembic upgrade head
+
+      - name: Download SARIF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.inputs.sarif_artifact || 'codeql-sarif-python' }}
+          path: sarif-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Locate SARIF files
+        id: sarif
+        run: |
+          shopt -s nullglob globstar
+          files=(sarif-results/**/*.sarif)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No SARIF files found, exiting cleanly."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${files[@]}" > sarif_files.txt
+          cat sarif_files.txt
+
+      - name: Ingest SARIF
+        if: steps.sarif.outputs.found == 'true'
+        run: |
+          while IFS= read -r path; do
+            echo "Ingesting $path"
+            ai-triage ingest "$path" \
+              --repository "${GITHUB_REPOSITORY}" \
+              --commit "${GITHUB_SHA}" \
+              --branch "${GITHUB_REF_NAME}"
+          done < sarif_files.txt
+
+      - name: Run triage agent
+        if: steps.sarif.outputs.found == 'true' && env.OPENAI_API_KEY != ''
+        run: ai-triage triage --limit 50
+
+      - name: Print triage status
+        if: steps.sarif.outputs.found == 'true'
+        run: ai-triage status --limit 25

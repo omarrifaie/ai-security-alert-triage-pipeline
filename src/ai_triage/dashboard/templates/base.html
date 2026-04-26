@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}AI Security Alert Triage{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #273449;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #eab308;
+      --low: #22c55e;
+      --info: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.04em; }
+    header a { color: var(--accent); text-decoration: none; margin-left: 1rem; font-weight: 600; }
+    main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+    h2 { margin-top: 2rem; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 0.6rem 0.8rem; border-bottom: 1px solid #334155; text-align: left; vertical-align: top; font-size: 0.875rem; }
+    th { background: var(--panel-2); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+    tr:last-child td { border-bottom: none; }
+    a { color: var(--accent); }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sev-critical { background: var(--critical); color: white; }
+    .sev-high { background: var(--high); color: white; }
+    .sev-medium { background: var(--medium); color: #1e293b; }
+    .sev-low { background: var(--low); color: #052e16; }
+    .sev-info { background: var(--info); color: white; }
+    .panel { background: var(--panel); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .stat { background: var(--panel-2); padding: 1rem; border-radius: 8px; }
+    .stat .value { font-size: 1.5rem; font-weight: 700; }
+    .stat .label { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    form.filters { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+    form.filters label { display: flex; flex-direction: column; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    form.filters input, form.filters select {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      min-width: 140px;
+    }
+    form.filters button {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    pre { background: #0b1220; padding: 0.75rem; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; }
+    code { background: #0b1220; padding: 0.1rem 0.35rem; border-radius: 4px; }
+    .muted { color: var(--muted); }
+    .form-card { background: var(--panel-2); padding: 1rem; border-radius: 8px; }
+    textarea, input[type=text] {
+      width: 100%;
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 0.5rem;
+      font-size: 0.875rem;
+    }
+    textarea { min-height: 100px; }
+    button.primary {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Security Alert Triage</h1>
+    <nav>
+      <a href="/">Findings</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
