@@ -17,6 +17,16 @@ services:
       timeout: 5s
       retries: 10
 
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://triage:triage@postgres:5432/triage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   dashboard:
     build:
       context: .
@@ -25,6 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql+psycopg://triage:triage@postgres:5432/triage
       OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-replace-me}

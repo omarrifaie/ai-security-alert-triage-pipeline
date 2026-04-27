@@ -175,6 +175,7 @@ ai-security-alert-triage-pipeline/
 ├── alembic.ini
 ├── docker-compose.yml         Local PostgreSQL and dashboard services
 ├── Dockerfile                 Dashboard service image
+├── docs/                      Screenshot and supporting assets
 ├── pyproject.toml             Package metadata and tool configuration
 ├── scripts/
 │   └── init_db.py             Bootstrap helper used by tests and quick demos
@@ -194,6 +195,7 @@ ai-security-alert-triage-pipeline/
 │   └── test_triage.py
 ├── .env.example
 ├── .gitignore
+├── LICENSE                    MIT license file
 └── README.md
 ```
 

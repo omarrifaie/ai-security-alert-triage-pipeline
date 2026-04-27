@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,10 +63,10 @@ def run_triage(
     raise_on_error: bool = False,
 ) -> TriageSummary:
     """Run the triage agent against every pending finding."""
-    findings: Iterable[models.Finding] = repositories.list_pending_findings(session, limit=limit)
+    findings: list[models.Finding] = list(repositories.list_pending_findings(session, limit=limit))
+    total_pending = len(findings)
     processed = 0
     failed = 0
-    skipped = 0
 
     for finding in findings:
         request = TriageRequest.from_orm(finding)
@@ -92,9 +91,11 @@ def run_triage(
         )
         processed += 1
 
-    if processed or failed:
+    try:
         session.commit()
-    else:
-        skipped += 1
+    except Exception:
+        session.rollback()
+        raise
 
+    skipped = max(0, total_pending - processed - failed)
     return TriageSummary(processed=processed, failed=failed, skipped=skipped)

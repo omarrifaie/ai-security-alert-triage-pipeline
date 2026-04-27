@@ -53,8 +53,8 @@ dev = [
 ai-triage = "ai_triage.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/omar-rifaie/ai-security-alert-triage-pipeline"
-Issues = "https://github.com/omar-rifaie/ai-security-alert-triage-pipeline/issues"
+Homepage = "https://github.com/omarrifaie/ai-security-alert-triage-pipeline"
+Issues = "https://github.com/omarrifaie/ai-security-alert-triage-pipeline/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

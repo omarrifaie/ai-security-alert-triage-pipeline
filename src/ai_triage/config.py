@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
     openai_model: str = Field(
         default="gpt-4o-mini",
-        description="Model identifier passed to the OpenAI Responses API.",
+        description="Model identifier passed to the OpenAI Chat Completions API.",
     )
     openai_timeout_seconds: float = Field(default=30.0)
     openai_max_retries: int = Field(default=3, ge=0, le=10)
