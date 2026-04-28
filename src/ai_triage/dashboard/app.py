@@ -91,7 +91,7 @@ def create_app() -> FastAPI:
             },
         )
 
-    @application.get("/findings/{finding_id}", response_class=HTMLResponse)
+    @application.get("/findings/{finding_id}", response_class=HTMLResponse, name="finding_detail")
     def finding_detail(
         request: Request,
         finding_id: int,
@@ -112,6 +112,7 @@ def create_app() -> FastAPI:
 
     @application.post("/findings/{finding_id}/remediation")
     def update_remediation(
+        request: Request,
         finding_id: int,
         status: str = Form(...),
         notes: str = Form(default=""),
@@ -136,7 +137,10 @@ def create_app() -> FastAPI:
             pull_request_url=pr_url or None,
         )
         session.commit()
-        return RedirectResponse(url=f"/findings/{finding_id}", status_code=303)
+        return RedirectResponse(
+            url=str(request.url_for("finding_detail", finding_id=finding_id)),
+            status_code=303,
+        )
 
     return application
 

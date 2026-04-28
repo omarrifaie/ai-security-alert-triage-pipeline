@@ -72,30 +72,25 @@ def run_triage(
         request = TriageRequest.from_orm(finding)
         try:
             decision, raw_response = agent.classify(request)
+            repositories.upsert_triage_result(
+                session,
+                finding_id=finding.id,
+                severity=decision.severity,
+                false_positive_likelihood=decision.false_positive_likelihood,
+                justification=decision.justification,
+                suggested_action=decision.suggested_action,
+                model=agent.model,
+                raw_response=raw_response,
+            )
+            session.commit()
+            processed += 1
         except TriageError as exc:
+            session.rollback()
             logger.warning("Triage failed for finding %s: %s", finding.id, exc)
             failed += 1
             if raise_on_error:
                 raise
             continue
-
-        repositories.upsert_triage_result(
-            session,
-            finding_id=finding.id,
-            severity=decision.severity,
-            false_positive_likelihood=decision.false_positive_likelihood,
-            justification=decision.justification,
-            suggested_action=decision.suggested_action,
-            model=agent.model,
-            raw_response=raw_response,
-        )
-        processed += 1
-
-    try:
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
 
     skipped = max(0, total_pending - processed - failed)
     return TriageSummary(processed=processed, failed=failed, skipped=skipped)

@@ -109,7 +109,8 @@ TRIAGE_JSON_SCHEMA: dict[str, Any] = {
 
 
 class _ChatCompletions(Protocol):
-    def create(self, **kwargs: Any) -> Any: ...
+    def create(self, **kwargs: Any) -> Any:
+        """Stub."""
 
 
 class _ChatNamespace(Protocol):

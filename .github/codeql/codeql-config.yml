@@ -1,0 +1,4 @@
+name: "AI Security Alert Triage CodeQL config"
+paths-ignore:
+  - tests/**
+  - alembic/versions/**

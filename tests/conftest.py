@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ai_triage.db.models import Base
+
+os.environ.setdefault("OPENAI_API_KEY", "sk-test")
 
 
 @pytest.fixture

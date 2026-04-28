@@ -206,6 +206,46 @@ def test_run_triage_records_failures_without_aborting(db_session, sample_sarif_p
     assert summary.failed == 1
 
 
+def test_run_triage_preserves_partial_progress_on_mid_batch_failure(
+    db_session, sample_sarif_payload
+) -> None:
+    parsed = parse_sarif(sample_sarif_payload)
+    scan = repositories.create_scan(db_session, parsed, repository="acme/app")
+    db_session.commit()
+    first_finding_id = scan.findings[0].id
+    second_finding_id = scan.findings[1].id
+
+    chat_completions = MagicMock()
+    chat_completions.create.side_effect = [
+        _build_completion(
+            json.dumps(
+                {
+                    "severity": "high",
+                    "false_positive_likelihood": 0.1,
+                    "justification": "Real issue committed before the failure.",
+                }
+            )
+        ),
+        _build_completion("not-json"),
+    ]
+    client = SimpleNamespace(chat=SimpleNamespace(completions=chat_completions))
+    agent = TriageAgent(client=client, settings=_settings())
+
+    summary = run_triage(db_session, agent)
+    assert summary.processed == 1
+    assert summary.failed == 1
+
+    db_session.expire_all()
+    first = repositories.get_finding(db_session, first_finding_id)
+    assert first is not None
+    assert first.triage is not None
+    assert first.triage.severity == models.Severity.HIGH
+
+    second = repositories.get_finding(db_session, second_finding_id)
+    assert second is not None
+    assert second.triage is None
+
+
 def test_triage_request_to_user_prompt_includes_metadata() -> None:
     request = TriageRequest(
         rule_id="py/sql-injection",

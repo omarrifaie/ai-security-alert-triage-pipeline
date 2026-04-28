@@ -181,13 +181,25 @@ ai-security-alert-triage-pipeline/
 │   └── init_db.py             Bootstrap helper used by tests and quick demos
 ├── src/
 │   └── ai_triage/
+│       ├── __init__.py
 │       ├── cli.py             Typer entry point
 │       ├── config.py          Pydantic settings
 │       ├── parser.py          SARIF parser
 │       ├── services.py        Ingestion and triage orchestration
 │       ├── triage.py          OpenAI triage agent
-│       ├── db/                SQLAlchemy models, sessions, repositories
-│       └── dashboard/         FastAPI app and Jinja2 templates
+│       ├── dashboard/         FastAPI app and Jinja2 templates
+│       │   ├── __init__.py
+│       │   ├── app.py
+│       │   ├── static/
+│       │   └── templates/
+│       │       ├── base.html
+│       │       ├── index.html
+│       │       └── finding.html
+│       └── db/                SQLAlchemy models, sessions, repositories
+│           ├── __init__.py
+│           ├── models.py
+│           ├── repositories.py
+│           └── session.py
 ├── tests/
 │   ├── conftest.py
 │   ├── test_parser.py

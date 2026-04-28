@@ -69,7 +69,7 @@ def test_post_remediation_updates_status_and_redirects(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == f"/findings/{seeded_finding_id}"
+    assert response.headers["location"].endswith(f"/findings/{seeded_finding_id}")
 
     refreshed = repositories.get_finding(db_session, seeded_finding_id)
     assert refreshed is not None

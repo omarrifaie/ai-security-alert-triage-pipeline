@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     )
 
     openai_api_key: str = Field(
-        default="sk-replace-me",
+        ...,
         description="API key for the OpenAI client used by the triage agent.",
     )
     openai_model: str = Field(
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = Field(default=30.0)
     openai_max_retries: int = Field(default=3, ge=0, le=10)
 
-    dashboard_host: str = Field(default="0.0.0.0")
+    dashboard_host: str = Field(default="127.0.0.1")
     dashboard_port: int = Field(default=8000, ge=1, le=65535)
     dashboard_reload: bool = Field(default=False)
 
