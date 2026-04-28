@@ -210,7 +210,4 @@ ai-security-alert-triage-pipeline/
 ├── LICENSE                    MIT license file
 └── README.md
 ```
-
-## License
-
-Released under the MIT License. See the project metadata in `pyproject.toml` for details.
+Built by Omar Rifaie - [github.com/omarrifaie](https://github.com/omarrifaie) · [linkedin.com/in/omar-rifaie-](https://linkedin.com/in/omar-rifaie-)
