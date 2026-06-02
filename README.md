@@ -1,10 +1,21 @@
 # AI Security Alert Triage Pipeline
 
-![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000) ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json) ![CI](https://github.com/omarrifaie/ai-security-alert-triage-pipeline/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000) ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json) ![CI](https://github.com/omarrifaie/ai-security-alert-triage-pipeline/actions/workflows/ci.yml/badge.svg) [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://ai-security-alert-triage-pipeline-production.up.railway.app)
 
 ## Screenshot
 
 ![Dashboard screenshot](docs/screenshot.png)
+
+## Live Demo
+
+The dashboard is deployed and publicly accessible at
+[ai-security-alert-triage-pipeline-production.up.railway.app](https://ai-security-alert-triage-pipeline-production.up.railway.app).
+
+The deployment runs on Railway with a managed PostgreSQL database.
+GitHub Actions runs CodeQL on every push and scheduled scan, the
+AI Triage workflow classifies findings through the OpenAI API, and
+results persist to the live database where the FastAPI dashboard
+reads from.
 
 A DevSecOps pipeline that integrates CodeQL static analysis with an OpenAI-backed triage agent and a PostgreSQL-backed dashboard. Every pull request runs CodeQL, the resulting SARIF report is ingested into Postgres, and an AI agent classifies each finding by severity, scores its false-positive likelihood, and writes a short justification. Engineers track remediation state from a small server-rendered dashboard.
 
