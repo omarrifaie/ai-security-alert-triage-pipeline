@@ -15,8 +15,15 @@ _SessionLocal: sessionmaker[Session] | None = None
 
 
 def init_engine(database_url: str | None = None, *, echo: bool = False) -> Engine:
-    """Create the global engine. Safe to call multiple times."""
+    """Create the global engine.
+
+    Safe to call multiple times: any previously created engine is disposed
+    first so repeated calls do not leak connection pools.
+    """
     global _engine, _SessionLocal
+
+    if _engine is not None:
+        _engine.dispose()
 
     url = database_url or get_settings().database_url
     _engine = create_engine(url, echo=echo, pool_pre_ping=True, future=True)

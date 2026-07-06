@@ -42,6 +42,39 @@ class TriageError(RuntimeError):
     """Raised when the triage agent fails to produce a valid response."""
 
 
+class TransientTriageError(TriageError):
+    """A ``TriageError`` for failures that are worth retrying (rate limits, timeouts, 5xx)."""
+
+
+def _is_transient_error(exc: Exception) -> bool:
+    """Return ``True`` when an OpenAI SDK error looks retryable.
+
+    Rate limits, timeouts, connection drops, and 5xx responses are transient.
+    Client errors such as authentication (401) or bad requests (400) are
+    permanent and should not be retried. If the OpenAI exception hierarchy
+    cannot be imported we fall back to treating the error as transient so the
+    previous retry behaviour is preserved.
+    """
+    try:
+        from openai import (
+            APIConnectionError,
+            APITimeoutError,
+            InternalServerError,
+            RateLimitError,
+        )
+    except ImportError:  # pragma: no cover - openai always installed in practice
+        return True
+
+    if isinstance(
+        exc,
+        (APITimeoutError, APIConnectionError, RateLimitError, InternalServerError),
+    ):
+        return True
+
+    status = getattr(exc, "status_code", None)
+    return isinstance(status, int) and status >= 500
+
+
 class TriageDecision(BaseModel):
     """Validated structured output returned by the model."""
 
@@ -94,7 +127,10 @@ TRIAGE_JSON_SCHEMA: dict[str, Any] = {
                 "maxLength": 2000,
             },
             "suggested_action": {
-                "type": "string",
+                # OpenAI structured outputs with ``strict: true`` require every
+                # property to appear in ``required``; optional fields are modelled
+                # as a nullable type instead.
+                "type": ["string", "null"],
                 "maxLength": 2000,
             },
         },
@@ -102,6 +138,7 @@ TRIAGE_JSON_SCHEMA: dict[str, Any] = {
             "severity",
             "false_positive_likelihood",
             "justification",
+            "suggested_action",
         ],
     },
     "strict": True,
@@ -235,7 +272,7 @@ class TriageAgent:
             reraise=True,
             stop=stop_after_attempt(max(1, self._settings.openai_max_retries)),
             wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type(TriageError),
+            retry=retry_if_exception_type(TransientTriageError),
         )
         def _do_call() -> Any:
             try:
@@ -251,9 +288,12 @@ class TriageAgent:
                     },
                     temperature=0.0,
                 )
-            except Exception as exc:  # pragma: no cover - network / SDK errors
+            except Exception as exc:  # network / SDK errors
                 logger.warning("OpenAI request failed: %s", exc)
-                raise TriageError(f"OpenAI request failed: {exc}") from exc
+                message = f"OpenAI request failed: {exc}"
+                if _is_transient_error(exc):
+                    raise TransientTriageError(message) from exc
+                raise TriageError(message) from exc
 
             return response
 
