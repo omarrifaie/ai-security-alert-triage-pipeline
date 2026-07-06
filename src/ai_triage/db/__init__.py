@@ -3,6 +3,7 @@
 from ai_triage.db.models import (
     Base,
     Finding,
+    Remediation,
     RemediationStatus,
     Scan,
     Severity,
@@ -18,6 +19,7 @@ from ai_triage.db.session import (
 __all__ = [
     "Base",
     "Finding",
+    "Remediation",
     "RemediationStatus",
     "Scan",
     "Severity",

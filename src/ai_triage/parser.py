@@ -235,13 +235,21 @@ def _build_fingerprint(
     """Stable identifier for de-duplication across scans."""
     fingerprints = result.get("partialFingerprints") or {}
     if isinstance(fingerprints, dict) and fingerprints:
-        # Use the first fingerprint deterministically (sorted by key).
+        # Use the first fingerprint deterministically (sorted by key). CodeQL's
+        # partialFingerprints are stable across scans, which is what we want.
         key = sorted(fingerprints.keys())[0]
         return f"{rule_id}::{fingerprints[key]}"
 
     if locations:
+        # Fall back to the full primary location. Including the end coordinates
+        # keeps distinct findings of the same rule on the same start line (but
+        # different spans) from colliding on ``uq_findings_scan_fingerprint``.
         loc = locations[0]
-        return f"{rule_id}::{loc.file_path}:{loc.start_line or 0}:{loc.start_column or 0}"
+        return (
+            f"{rule_id}::{loc.file_path}:"
+            f"{loc.start_line or 0}:{loc.start_column or 0}:"
+            f"{loc.end_line or 0}:{loc.end_column or 0}"
+        )
 
     return f"{rule_id}::unknown"
 

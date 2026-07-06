@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from ai_triage.config import get_settings
 from ai_triage.db import models, repositories
 from ai_triage.db.session import get_session, init_engine
+from ai_triage.enums import coerce_enum
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -56,8 +57,8 @@ def create_app() -> FastAPI:
         limit: int = Query(default=50, ge=1, le=500),
         session: Session = Depends(_db_session),
     ) -> HTMLResponse:
-        sev = _coerce_enum(models.Severity, severity)
-        rem_status = _coerce_enum(models.RemediationStatus, status)
+        sev = coerce_enum(models.Severity, severity)
+        rem_status = coerce_enum(models.RemediationStatus, status)
 
         findings = repositories.list_findings_with_filters(
             session,
@@ -120,7 +121,7 @@ def create_app() -> FastAPI:
         pr_url: str = Form(default=""),
         session: Session = Depends(_db_session),
     ) -> RedirectResponse:
-        rem_status = _coerce_enum(models.RemediationStatus, status)
+        rem_status = coerce_enum(models.RemediationStatus, status)
         if rem_status is None:
             raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
 
@@ -143,15 +144,6 @@ def create_app() -> FastAPI:
         )
 
     return application
-
-
-def _coerce_enum(enum_cls, value):
-    if value is None or value == "":
-        return None
-    try:
-        return enum_cls(value.lower())
-    except ValueError:
-        return None
 
 
 app = create_app()

@@ -82,7 +82,16 @@ Required variables:
 * OPENAI_API_KEY: API key passed to the OpenAI client.
 * OPENAI_MODEL: Model identifier (defaults to gpt-4o-mini).
 
-Optional variables include OPENAI_TIMEOUT_SECONDS, OPENAI_MAX_RETRIES, DASHBOARD_HOST, DASHBOARD_PORT, DEFAULT_REPOSITORY, and LOG_LEVEL. See `.env.example` for the full list and inline descriptions.
+Optional variables:
+
+* OPENAI_TIMEOUT_SECONDS: per-request timeout for the OpenAI client (default 30).
+* OPENAI_MAX_RETRIES: how many times a transient OpenAI error is retried (default 3). Permanent errors such as authentication failures are not retried.
+* DASHBOARD_HOST / DASHBOARD_PORT: bind address for uvicorn (defaults `127.0.0.1:8000`; containers set the host to `0.0.0.0`).
+* DASHBOARD_RELOAD: enable uvicorn auto-reload for local development (default `false`).
+* DEFAULT_REPOSITORY: repository identifier stored on each scan when `--repository` is omitted.
+* LOG_LEVEL: logging level for the CLI and dashboard.
+
+See `.env.example` for the full list and inline descriptions.
 
 ## Running locally with Docker Compose
 
@@ -152,6 +161,15 @@ Then open http://localhost:8000. The home page shows severity counts, remediatio
 
 A health check endpoint is available at `/health` and is used by the Docker image's HEALTHCHECK directive.
 
+## Security and limitations
+
+A few deliberate trade-offs are worth calling out:
+
+* The dashboard has no authentication. The public [live demo](https://ai-security-alert-triage-pipeline-production.up.railway.app) is intentionally open so the project can be explored without credentials. It is a showcase, not a template for an internet-facing production deployment. If you deploy your own instance with real data, put the dashboard behind access control (a reverse proxy, SSO, or network policy).
+* The remediation form (`POST /findings/{id}/remediation`) is a state-changing endpoint without CSRF protection. This is acceptable for an unauthenticated demo, but any authenticated deployment should add CSRF tokens.
+* Treat the demo database as public and disposable; do not store anything sensitive in it.
+* By default the dashboard binds to `127.0.0.1`. Container images set `0.0.0.0` so the port can be published — only expose it on a trusted network.
+
 ## Running tests
 
 The test suite uses pytest, an isolated SQLite fixture for the data layer, and mocks the OpenAI client so no network access is required.
@@ -175,6 +193,8 @@ The same commands run automatically in the CI workflow.
 ```
 ai-security-alert-triage-pipeline/
 ├── .github/
+│   ├── codeql/
+│   │   └── codeql-config.yml  CodeQL query and path configuration
 │   └── workflows/
 │       ├── codeql.yml         CodeQL static analysis on pull requests
 │       ├── triage.yml         Ingestion and AI triage workflow
@@ -215,7 +235,9 @@ ai-security-alert-triage-pipeline/
 │   ├── conftest.py
 │   ├── test_parser.py
 │   ├── test_db.py
-│   └── test_triage.py
+│   ├── test_dashboard.py
+│   ├── test_triage.py
+│   └── test_postgres_integration.py
 ├── .env.example
 ├── .gitignore
 ├── LICENSE                    MIT license file

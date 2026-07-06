@@ -17,6 +17,7 @@ from ai_triage.triage import (
     TriageDecision,
     TriageError,
     TriageRequest,
+    _serialise_response,
 )
 
 
@@ -244,6 +245,92 @@ def test_run_triage_preserves_partial_progress_on_mid_batch_failure(
     second = repositories.get_finding(db_session, second_finding_id)
     assert second is not None
     assert second.triage is None
+
+
+class _StatusError(Exception):
+    """Stand-in for an OpenAI SDK error carrying an HTTP status code."""
+
+    def __init__(self, status_code: int) -> None:
+        super().__init__(f"status {status_code}")
+        self.status_code = status_code
+
+
+def _agent_with_side_effect(
+    side_effect: object, *, max_retries: int
+) -> tuple[TriageAgent, MagicMock]:
+    chat_completions = MagicMock()
+    chat_completions.create.side_effect = side_effect
+    client = SimpleNamespace(chat=SimpleNamespace(completions=chat_completions))
+    settings = Settings(
+        openai_api_key="sk-test",
+        openai_model="gpt-test",
+        openai_max_retries=max_retries,
+        openai_timeout_seconds=5.0,
+    )
+    return TriageAgent(client=client, settings=settings), chat_completions
+
+
+def _minimal_request() -> TriageRequest:
+    return TriageRequest(
+        rule_id="py/x",
+        rule_name="X",
+        message="m",
+        severity_hint="low",
+        file_path=None,
+        start_line=None,
+        end_line=None,
+        snippet=None,
+        tags=[],
+        help_uri=None,
+    )
+
+
+def test_call_model_retries_transient_errors(monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+    good = _build_completion(
+        json.dumps({"severity": "low", "false_positive_likelihood": 0.1, "justification": "ok"})
+    )
+    agent, chat = _agent_with_side_effect([_StatusError(503), good], max_retries=3)
+
+    decision, _ = agent.classify(_minimal_request())
+
+    assert decision.severity == models.Severity.LOW
+    assert chat.create.call_count == 2  # first attempt (503) retried, second succeeded
+
+
+def test_call_model_does_not_retry_permanent_errors(monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+    agent, chat = _agent_with_side_effect(_StatusError(401), max_retries=3)
+
+    with pytest.raises(TriageError):
+        agent.classify(_minimal_request())
+
+    assert chat.create.call_count == 1  # 401 is permanent, so no retry
+
+
+def test_serialise_response_prefers_model_dump() -> None:
+    class Obj:
+        def model_dump(self) -> dict:
+            return {"a": 1}
+
+    assert _serialise_response(Obj()) == {"a": 1}
+
+
+def test_serialise_response_uses_to_dict() -> None:
+    class Obj:
+        def to_dict(self) -> dict:
+            return {"b": 2}
+
+    assert _serialise_response(Obj()) == {"b": 2}
+
+
+def test_serialise_response_falls_back_to_plain_recursion() -> None:
+    payload = SimpleNamespace(x=1, y=[SimpleNamespace(z="q")])
+    assert _serialise_response(payload) == {"x": 1, "y": [{"z": "q"}]}
+
+
+def test_serialise_response_wraps_non_dict_scalar() -> None:
+    assert _serialise_response("hi") == {"value": "hi"}
 
 
 def test_triage_request_to_user_prompt_includes_metadata() -> None:

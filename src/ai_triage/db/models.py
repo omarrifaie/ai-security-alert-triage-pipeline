@@ -144,7 +144,12 @@ class TriageResult(Base):
         index=True,
     )
     severity: Mapped[Severity] = mapped_column(
-        SAEnum(Severity, name="severity_enum", create_type=False),
+        SAEnum(
+            Severity,
+            name="severity_enum",
+            create_type=False,
+            values_callable=lambda enum_cls: [m.value for m in enum_cls],
+        ),
         nullable=False,
     )
     false_positive_likelihood: Mapped[float] = mapped_column(Float, nullable=False)

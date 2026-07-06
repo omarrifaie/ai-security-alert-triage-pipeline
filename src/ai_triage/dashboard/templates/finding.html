@@ -30,8 +30,10 @@
       <p class="muted">Tags: {{ finding.tags|join(", ") }}</p>
     {% endif %}
 
-    {% if finding.help_uri %}
-      <p>Reference: <a href="{{ finding.help_uri }}" target="_blank" rel="noopener">{{ finding.help_uri }}</a></p>
+    {% if finding.help_uri and (finding.help_uri.startswith("https://") or finding.help_uri.startswith("http://")) %}
+      <p>Reference: <a href="{{ finding.help_uri }}" target="_blank" rel="noopener noreferrer">{{ finding.help_uri }}</a></p>
+    {% elif finding.help_uri %}
+      <p class="muted">Reference: <code>{{ finding.help_uri }}</code></p>
     {% endif %}
   </section>
 

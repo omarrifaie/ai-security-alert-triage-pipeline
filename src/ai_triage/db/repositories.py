@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -40,7 +39,14 @@ def create_scan(
     session.add(scan)
     session.flush()
 
+    # A single SARIF report can contain multiple results that resolve to the
+    # same fingerprint. Skip in-scan duplicates so we do not violate
+    # ``uq_findings_scan_fingerprint`` and abort the whole ingestion.
+    seen_fingerprints: set[str] = set()
     for parsed_finding in parsed.findings:
+        if parsed_finding.fingerprint in seen_fingerprints:
+            continue
+        seen_fingerprints.add(parsed_finding.fingerprint)
         finding = _to_finding(scan_id=scan.id, parsed=parsed_finding)
         finding.remediation = Remediation(status=RemediationStatus.OPEN)
         session.add(finding)
@@ -211,24 +217,3 @@ def severity_breakdown(session: Session, *, repository: str | None = None) -> di
 
 def get_finding(session: Session, finding_id: int) -> Finding | None:
     return session.get(Finding, finding_id)
-
-
-def find_finding_by_fingerprint(
-    session: Session, *, scan_id: int, fingerprint: str
-) -> Finding | None:
-    stmt = select(Finding).where(Finding.scan_id == scan_id, Finding.fingerprint == fingerprint)
-    return session.scalars(stmt).one_or_none()
-
-
-def scan_window(
-    session: Session,
-    *,
-    since: datetime | None = None,
-    repository: str | None = None,
-) -> list[Scan]:
-    stmt = select(Scan).order_by(Scan.created_at.desc())
-    if repository:
-        stmt = stmt.where(Scan.repository == repository)
-    if since is not None:
-        stmt = stmt.where(Scan.created_at >= since)
-    return list(session.scalars(stmt))

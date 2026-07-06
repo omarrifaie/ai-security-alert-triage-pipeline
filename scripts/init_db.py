@@ -26,7 +26,7 @@ def main() -> None:
 
     engine = init_engine(args.database_url)
     Base.metadata.create_all(engine)
-    logging.info("Created all tables on %s", engine.url)
+    logging.info("Created all tables on %s", engine.url.render_as_string(hide_password=True))
 
 
 if __name__ == "__main__":

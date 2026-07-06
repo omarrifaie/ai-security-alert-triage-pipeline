@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from enum import Enum
 from pathlib import Path
+from typing import TypeVar
 
 import typer
 from rich.console import Console
@@ -13,8 +15,11 @@ from rich.table import Table
 from ai_triage.config import get_settings
 from ai_triage.db import models, repositories
 from ai_triage.db.session import init_engine, session_scope
+from ai_triage.enums import coerce_enum
 from ai_triage.services import ingest_sarif, run_triage
 from ai_triage.triage import TriageAgent
+
+E = TypeVar("E", bound=Enum)
 
 app = typer.Typer(
     add_completion=False,
@@ -196,20 +201,20 @@ def scans_command(limit: int = typer.Option(10, "--limit", "-n")) -> None:
     console.print(table)
 
 
-def _parse_enum(enum_cls, value, required: bool = False):
-    if value is None:
+def _parse_enum(enum_cls: type[E], value: str | None, required: bool = False) -> E | None:
+    if value is None or value == "":
         if required:
             console.print(
                 f"[red]Status is required, expected one of {[m.value for m in enum_cls]}[/red]"
             )
             raise typer.Exit(code=2)
         return None
-    try:
-        return enum_cls(value.lower())
-    except ValueError:
+    parsed = coerce_enum(enum_cls, value)
+    if parsed is None:
         valid = ", ".join(m.value for m in enum_cls)
         console.print(f"[red]Invalid value '{value}'. Valid options: {valid}[/red]")
-        raise typer.Exit(code=2) from None
+        raise typer.Exit(code=2)
+    return parsed
 
 
 def main() -> None:  # pragma: no cover - entry point shim

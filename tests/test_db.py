@@ -138,6 +138,38 @@ def test_list_findings_with_filters(db_session: Session, sample_sarif_payload: d
     assert len(by_rule) == 1
 
 
+def test_list_findings_with_filters_by_status(
+    db_session: Session, sample_sarif_payload: dict
+) -> None:
+    parsed = parse_sarif(sample_sarif_payload)
+    scan = repositories.create_scan(db_session, parsed, repository="acme/app")
+    db_session.commit()
+
+    # Every finding starts with an OPEN remediation row.
+    open_findings = repositories.list_findings_with_filters(
+        db_session, status=models.RemediationStatus.OPEN
+    )
+    assert len(open_findings) == 2
+
+    # Move one to FIXED and confirm the Remediation join filters correctly.
+    repositories.update_remediation(
+        db_session, finding_id=scan.findings[0].id, status=models.RemediationStatus.FIXED
+    )
+    db_session.commit()
+
+    fixed = repositories.list_findings_with_filters(
+        db_session, status=models.RemediationStatus.FIXED
+    )
+    assert len(fixed) == 1
+    assert fixed[0].id == scan.findings[0].id
+
+    still_open = repositories.list_findings_with_filters(
+        db_session, status=models.RemediationStatus.OPEN
+    )
+    assert len(still_open) == 1
+    assert still_open[0].id == scan.findings[1].id
+
+
 def test_severity_breakdown_and_remediation_summary(
     db_session: Session, sample_sarif_payload: dict
 ) -> None:
